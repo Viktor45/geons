@@ -1,5 +1,6 @@
 server:
   port: 5300
+  bind_address: "127.0.0.1"
   # The domain the server will respond to (the IP will be prepended to it)
   domain_suffix: ".geons"
   # Whitelist of networks (CIDR) that are allowed to make requests

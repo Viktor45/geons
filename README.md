@@ -15,7 +15,7 @@ A simple, fast, and configurable DNS server written in Go that returns geolocati
 
 ## Requirements
 
-- Go 1.19 or higher
+- Go 1.25 or higher
 - MaxMind GeoLite2-Country.mmdb database file ([download here](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data))
 
 ## Installation
@@ -40,6 +40,7 @@ Create a `config.yaml` file:
 ```yaml
 server:
   port: 5300
+  bind_address: "127.0.0.1"
   # Domain suffix for queries (IP will be prepended)
   domain_suffix: ".geons"
   # Whitelist of CIDR ranges allowed to query the server
@@ -65,6 +66,7 @@ response:
 
 #### `server`
 - `port` - UDP port to listen on (default: 5300)
+- `bind_address` - IP address to bind the UDP listener to (default: `127.0.0.1`)
 - `domain_suffix` - Suffix for DNS queries (e.g., `.geons` means queries like `8.8.8.8.geons`)
 - `allowed_cidrs` - List of CIDR ranges allowed to make queries
 

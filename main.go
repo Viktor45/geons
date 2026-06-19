@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ type Config struct {
 
 type ServerConfig struct {
 	Port         int      `yaml:"port"`
+	BindAddress  string   `yaml:"bind_address"`
 	DomainSuffix string   `yaml:"domain_suffix"`
 	AllowedCIDRs []string `yaml:"allowed_cidrs"`
 }
@@ -58,7 +60,7 @@ func main() {
 	dns.HandleFunc(".", handleDNS)
 
 	mu.RLock()
-	addr := fmt.Sprintf(":%d", cfg.Server.Port)
+	addr := fmt.Sprintf("%s:%d", cfg.Server.BindAddress, cfg.Server.Port)
 	mu.RUnlock()
 
 	log.Printf("Starting DNS server on %s (UDP)...", addr)
@@ -109,14 +111,66 @@ func main() {
 // --- Configuration loading and reloading ---
 
 func loadConfig() error {
-	configData, err := os.ReadFile("config.yaml")
+	configPath := "config.yaml"
+	absConfigPath, err := filepath.Abs(configPath)
 	if err != nil {
-		return fmt.Errorf("error reading config.yaml: %v", err)
+		return fmt.Errorf("failed to resolve config path %s: %v", configPath, err)
+	}
+
+	info, err := os.Stat(absConfigPath)
+	if err != nil {
+		return fmt.Errorf("error statting config file %s: %v", absConfigPath, err)
+	}
+	if info.IsDir() {
+		return fmt.Errorf("config path %s is a directory, expected a file", absConfigPath)
+	}
+
+	configData, err := os.ReadFile(absConfigPath)
+	if err != nil {
+		return fmt.Errorf("error reading %s: %v", absConfigPath, err)
 	}
 
 	var newCfg Config
 	if err := yaml.Unmarshal(configData, &newCfg); err != nil {
 		return fmt.Errorf("YAML parsing error: %v", err)
+	}
+
+	if newCfg.Server.Port == 0 {
+		return fmt.Errorf("server.port must be set and greater than zero")
+	}
+
+	newCfg.Server.DomainSuffix = strings.TrimSpace(newCfg.Server.DomainSuffix)
+	newCfg.Server.DomainSuffix = strings.TrimSuffix(newCfg.Server.DomainSuffix, ".")
+	if newCfg.Server.DomainSuffix == "" {
+		return fmt.Errorf("server.domain_suffix must be set")
+	}
+	if !strings.HasPrefix(newCfg.Server.DomainSuffix, ".") {
+		newCfg.Server.DomainSuffix = "." + newCfg.Server.DomainSuffix
+	}
+
+	newCfg.Server.BindAddress = strings.TrimSpace(newCfg.Server.BindAddress)
+	if newCfg.Server.BindAddress == "" {
+		newCfg.Server.BindAddress = "127.0.0.1"
+	}
+	if net.ParseIP(newCfg.Server.BindAddress) == nil {
+		return fmt.Errorf("invalid server.bind_address: %s", newCfg.Server.BindAddress)
+	}
+
+	newCfg.Database.Path = strings.TrimSpace(newCfg.Database.Path)
+	if newCfg.Database.Path == "" {
+		return fmt.Errorf("database.path must be set")
+	}
+	newCfg.Database.Path = filepath.Clean(newCfg.Database.Path)
+	if !filepath.IsAbs(newCfg.Database.Path) {
+		newCfg.Database.Path = filepath.Join(filepath.Dir(absConfigPath), newCfg.Database.Path)
+	}
+
+	dbInfo, err := os.Stat(newCfg.Database.Path)
+	if err != nil {
+		return fmt.Errorf("error opening database file %s: %v", newCfg.Database.Path, err)
+	}
+	if dbInfo.IsDir() {
+		return fmt.Errorf("database.path %s is a directory, expected MMDB file", newCfg.Database.Path)
 	}
 
 	// Parse new allowed CIDRs
@@ -164,7 +218,14 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 	m.Authoritative = true
 
 	// ACL check (whitelist) under RLock
-	clientIPStr, _, _ := net.SplitHostPort(w.RemoteAddr().String())
+	remoteAddr := w.RemoteAddr().String()
+	clientIPStr, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		// fallback: remote may be an IP without port
+		clientIPStr = remoteAddr
+	}
+	// Trim IPv6 brackets if present
+	clientIPStr = strings.Trim(clientIPStr, "[]")
 	clientIP := net.ParseIP(clientIPStr)
 
 	mu.RLock()
@@ -226,6 +287,12 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 		w.WriteMsg(m)
 		return
 	}
+	if record == nil {
+		log.Printf("IP lookup returned nil record for %s", ipStr)
+		setTXTResponse(m, q.Name, "UNKNOWN")
+		w.WriteMsg(m)
+		return
+	}
 
 	// Extract configured fields using reflection
 	var parts []string
@@ -274,42 +341,57 @@ func extractField(v reflect.Value, path string) string {
 			return ""
 		}
 
-		// Safely dereference pointers and interfaces in a loop
-		for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+		// Safely dereference pointers and interfaces
+		for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+			if v.IsNil() {
+				return ""
+			}
 			v = v.Elem()
+		}
+
+		if !v.IsValid() {
+			return ""
 		}
 
 		switch v.Kind() {
 		case reflect.Struct:
-			// If it's a struct, get field by name
 			v = v.FieldByName(part)
+			if !v.IsValid() {
+				return ""
+			}
 		case reflect.Map:
-			// If it's a map (e.g., map[string]string for Names)
 			mapKey := reflect.ValueOf(part)
 			v = v.MapIndex(mapKey)
 			if !v.IsValid() {
-				return "" // Key not found in map
+				return ""
 			}
-			// Dereference if map value is pointer/interface
-			for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
+			for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+				if v.IsNil() {
+					return ""
+				}
 				v = v.Elem()
 			}
 		default:
-			// If we reached a basic type (e.g., string) but path is not finished
 			return ""
 		}
 	}
 
-	if v.IsValid() {
-		// Final dereference before getting value
-		for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
-			v = v.Elem()
-		}
-		if v.Kind() == reflect.String {
-			return v.String()
-		}
-		// For any other types (int, bool, etc.)
-		return fmt.Sprintf("%v", v.Interface())
+	if !v.IsValid() {
+		return ""
 	}
-	return ""
+
+	for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+		if v.IsNil() {
+			return ""
+		}
+		v = v.Elem()
+	}
+	if !v.IsValid() {
+		return ""
+	}
+
+	if v.Kind() == reflect.String {
+		return v.String()
+	}
+	return fmt.Sprintf("%v", v.Interface())
 }

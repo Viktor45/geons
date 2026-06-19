@@ -1,10 +1,12 @@
 # GeoNS - Lightweight DNS Server for IP Geolocation
 
-A simple, fast, and configurable DNS server written in Go that returns geolocation information (country code, name, etc.) for IP addresses using [MaxMind's GeoLite2](https://dev.maxmind.com/geoip/geoip2/geolite2/) Country databases
+A simple, fast, and configurable DNS server-like microservice that returns *only* geolocation information (country code, name, etc.) for IP addresses using the [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geoip2/geolite2/) country-level databases.
+
+Essentially, it's a database access interface via the DNS protocol, designed for high-load systems; it eliminates the need for such projects to implement dependencies for database updates and read interfaces.
 
 ## Features
 
-- **Lightweight DNS server** with minimal dependencies
+- **Lightweight DNS microservice** with minimal dependencies
 - **MaxMind GeoLite2-Country support** for accurate IP geolocation
 - **Configurable response fields** - extract any field from the GeoIP2 database structure
 - **Access Control Lists (ACL)** - restrict access to specific CIDR ranges

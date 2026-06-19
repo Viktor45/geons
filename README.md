@@ -41,25 +41,30 @@ Create a `config.yaml` file:
 server:
   port: 5300
   bind_address: "127.0.0.1"
-  # Domain suffix for queries (IP will be prepended)
+  # The domain the server will respond to (the IP will be prepended to it)
+  # example domain for ip: 8.8.8.8 is 8.8.8.8.geons
+  # example query: dig +short TXT 8.8.8.8.geons @127.0.0.1 -p 5300
   domain_suffix: ".geons"
-  # Whitelist of CIDR ranges allowed to query the server
-  allowed_cidrs:
+  # Whitelist of networks (CIDR) that are allowed to make requests
+  allowed_clients:
     - "127.0.0.0/8"
-    - "192.168.0.0/16"
-    - "10.0.0.0/8"
+  #  - "192.168.0.0/16"
+  #  - "172.16.0.0/12"
+  #  - "10.0.0.0/8"
 
 database:
   path: "GeoLite2-Country.mmdb"
 
 response:
-  # Separator between field values in TXT record
+  # Separator between field values ​​in a TXT record
   separator: "|"
-  # Fields to extract (use field names from geoip2.Country structure)
-  # Examples: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+  # Fields to extract (use field names from the structure geoip2.Country)
+  # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+  # Example response for 8.8.8.8.geons: "US|United States"
   fields:
     - "Country.IsoCode"
     - "Country.Names.en"
+
 ```
 
 ### Configuration Options
@@ -68,7 +73,7 @@ response:
 - `port` - UDP port to listen on (default: 5300)
 - `bind_address` - IP address to bind the UDP listener to (default: `127.0.0.1`)
 - `domain_suffix` - Suffix for DNS queries (e.g., `.geons` means queries like `8.8.8.8.geons`)
-- `allowed_cidrs` - List of CIDR ranges allowed to make queries
+- `allowed_clients` - List of CIDR ranges allowed to make queries
 
 #### `database`
 - `path` - Path to MaxMind GeoLite2-Country.mmdb file
@@ -174,7 +179,7 @@ The server will:
 ### Request Flow
 
 1. DNS query arrives at the server
-2. Client IP is checked against `allowed_cidrs` whitelist
+2. Client IP is checked against `allowed_clients` whitelist
 3. Domain name is parsed to extract IP address
 4. IP is looked up in MaxMind GeoLite2-Country database
 5. Configured fields are extracted using reflection
@@ -210,7 +215,7 @@ The server will:
 - Ensure GeoLite2-Country.mmdb file exists and is readable
 
 ### Access denied errors
-- Check if client IP is in `allowed_cidrs` list
+- Check if client IP is in `allowed_clients` list
 - Verify CIDR format is correct (e.g., `192.168.1.0/24`)
 
 ### Empty or incorrect responses

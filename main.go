@@ -29,7 +29,7 @@ type ServerConfig struct {
 	Port         int      `yaml:"port"`
 	BindAddress  string   `yaml:"bind_address"`
 	DomainSuffix string   `yaml:"domain_suffix"`
-	AllowedCIDRs []string `yaml:"allowed_cidrs"`
+	AllowedCIDRs []string `yaml:"allowed_clients"`
 }
 
 type DatabaseConfig struct {

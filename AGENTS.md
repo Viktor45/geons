@@ -25,7 +25,7 @@
 - `SIGHUP` reloads config and database atomically.
 - `SIGINT` / `SIGTERM` perform graceful shutdown.
 - Only DNS TXT queries are handled; other query types return `NOTIMP`.
-- Requests are allowed only if the client IP matches `server.allowed_cidrs`.
+- Requests are allowed only if the client IP matches `server.allowed_clients`.
 - Domain names are parsed by stripping `server.domain_suffix`; invalid IPs and suffix mismatches return `NXDOMAIN`.
 - GeoIP field extraction uses reflection with paths like `Country.IsoCode`, `Country.Names.en`, or `Continent.Code`.
 

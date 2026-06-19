@@ -2,12 +2,15 @@ server:
   port: 5300
   bind_address: "127.0.0.1"
   # The domain the server will respond to (the IP will be prepended to it)
+  # example domain for ip: 8.8.8.8 is 8.8.8.8.geons
+  # example query: dig +short TXT 8.8.8.8.geons @127.0.0.1 -p 5300
   domain_suffix: ".geons"
   # Whitelist of networks (CIDR) that are allowed to make requests
-  allowed_cidrs:
+  allowed_clients:
     - "127.0.0.0/8"
-    - "192.168.0.0/16"
-    - "10.0.0.0/8"
+  #  - "192.168.0.0/16"
+  #  - "172.16.0.0/12"
+  #  - "10.0.0.0/8"
 
 database:
   path: "GeoLite2-Country.mmdb"
@@ -17,6 +20,7 @@ response:
   separator: "|"
   # Fields to extract (use field names from the structure geoip2.Country)
   # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+  # Example response for 8.8.8.8.geons: "US|United States"
   fields:
     - "Country.IsoCode"
     - "Country.Names.en"

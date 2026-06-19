@@ -28,5 +28,7 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
+/GeoLite2-Country.mmdb
+/geons

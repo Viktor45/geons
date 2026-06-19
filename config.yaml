@@ -1,0 +1,21 @@
+server:
+  port: 5300
+  # The domain the server will respond to (the IP will be prepended to it)
+  domain_suffix: ".geons"
+  # Whitelist of networks (CIDR) that are allowed to make requests
+  allowed_cidrs:
+    - "127.0.0.0/8"
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+
+database:
+  path: "GeoLite2-Country.mmdb"
+
+response:
+  # Separator between field values ​​in a TXT record
+  separator: "|"
+  # Fields to extract (use field names from the structure geoip2.Country)
+  # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+  fields:
+    - "Country.IsoCode"
+    - "Country.Names.en"

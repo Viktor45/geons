@@ -222,7 +222,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 All trademarks are the property of their respective owners.
 
-- Database and Contents Copyright (c) [MaxMind](https://www.maxmind.com/), Inc.
+- Database Copyright (c) [MaxMind](https://www.maxmind.com/), Inc.
 - [GeoLite2 End User License Agreement](https://www.maxmind.com/en/geolite2/eula)
 - [Creative Commons Corporation Attribution-ShareAlike 4.0 International License (the "Creative Commons License")](https://creativecommons.org/licenses/by-sa/4.0/)
 

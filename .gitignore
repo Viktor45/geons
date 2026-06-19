@@ -32,3 +32,4 @@ go.work.sum
 .vscode/
 /GeoLite2-Country.mmdb
 /geons
+.DS_Store

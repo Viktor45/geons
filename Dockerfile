@@ -12,7 +12,7 @@ RUN set -eux; \
     CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" \
     go build -trimpath -ldflags="-s -w" -o /out/geons ./geons
 
-FROM --platform=$BUILDPLATFORM alpine:3.23 AS certs
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS certs
 
 RUN apk add --no-cache ca-certificates \
     && mkdir -p /data

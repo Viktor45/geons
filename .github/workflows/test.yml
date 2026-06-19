@@ -30,4 +30,4 @@ jobs:
         run: go vet ./...
 
       - name: Build
-        run: go build ./geons
+        run: go build .

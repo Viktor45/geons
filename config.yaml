@@ -1,26 +1,81 @@
+# Example configuration for GeoNS geolocation microservice
 server:
   port: 5300
   bind_address: "127.0.0.1"
-  # The domain the server will respond to (the IP will be prepended to it)
-  # example domain for ip: 8.8.8.8 is 8.8.8.8.geons
-  # example query: dig +short TXT 8.8.8.8.geons @127.0.0.1 -p 5300
-  domain_suffix: ".geons"
   # Whitelist of networks (CIDR) that are allowed to make requests
   allowed_clients:
     - "127.0.0.0/8"
-  #  - "192.168.0.0/16"
-  #  - "172.16.0.0/12"
-  #  - "10.0.0.0/8"
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
 
-database:
-  path: "GeoLite2-Country.mmdb"
+# Zones configuration - only configured zones will be loaded
+# Each zone corresponds to a domain suffix and a specific MaxMind database
+# Comment out zones you don't need to save resources
+# (e.g., if you only need country info, comment out city and ASN zones)
+zones:
+  # Country zone
+  # example domain for ip: 4.4.2.2 is 4.4.2.2.geons
+  # example query: dig +short TXT 4.4.2.2.geons @127.0.0.1 -p 5300
+  - name: ".geons"
+    database:
+      path: "GeoLite2-Country.mmdb"
+      type: "country"
+    response:
+      # Separator between field values in TXT record
+      separator: "|"
+      # Fields to extract (use field names from the structure geoip2.Country)
+      # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+      #
+      # Example response for 8.8.8.8.geons: "US|United States"
+      fields:
+        - "Country.IsoCode"
+        - "Country.Names.en"
 
-response:
-  # Separator between field values ​​in a TXT record
-  separator: "|"
-  # Fields to extract (use field names from the structure geoip2.Country)
-  # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
-  # Example response for 8.8.8.8.geons: "US|United States"
-  fields:
-    - "Country.IsoCode"
-    - "Country.Names.en"
+  # ASN zone
+  # example domain for ip: 4.4.2.2 is 4.4.2.2.asn
+  # example query: dig +short TXT 4.4.2.2.asn @127.0.0.1 -p 5300
+  - name: ".asn"
+    database:
+      path: "GeoLite2-ASN.mmdb"
+      type: "asn"
+    response:
+      # Separator between field values in TXT record
+      separator: "|"
+      # Fields to extract from geoip2.ASN structure
+      # Available fields:
+      #   AutonomousSystemNumber - ASN number (e.g., 15169)
+      #   AutonomousSystemOrganization - Organization name (e.g., "Google LLC")
+      #
+      # Example response for 8.8.8.8.asn: "15169|Google LLC"
+      fields:
+        - "AutonomousSystemNumber"
+        - "AutonomousSystemOrganization"
+
+  # City zone
+  # example domain for ip: 4.4.2.2 is 4.4.2.2.geocity
+  # example query: dig +short TXT 4.4.2.2.geocity @127.0.0.1 -p 5300
+  - name: ".geocity"
+    database:
+      path: "GeoLite2-City.mmdb"
+      type: "city"
+    response:
+      # Separator between field values in TXT record
+      separator: "|"
+      # Fields to extract from geoip2.City structure
+      # Available fields:
+      #   City.Names.en, City.Names.ru, City.GeoNameId
+      #   Subdivisions[0].Names.en, Subdivisions[0].IsoCode
+      #   Country.IsoCode, Country.Names.en, Country.Names.ru
+      #   Location.Latitude, Location.Longitude, Location.TimeZone, Location.MetroCode
+      #   Postal.Code
+      #   Continent.Code, Continent.Names.en
+      #
+      # Example response for 8.8.8.8.geocity:
+      # "Mountain View|California|US|37.4056|-122.0775|America/Los_Angeles"
+      fields:
+        - "City.Names.en"
+        - "Subdivisions[0].Names.en"
+        - "Country.IsoCode"
+        - "Location.Latitude"
+        - "Location.Longitude"
+        - "Location.TimeZone"

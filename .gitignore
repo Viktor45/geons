@@ -30,6 +30,8 @@ go.work.sum
 # Editor/IDE
 .idea/
 .vscode/
-/GeoLite2-Country.mmdb
-/geons
 .DS_Store
+GeoLite2-Country.mmdb
+GeoLite2-City.mmdb
+GeoLite2-ASN.mmdb
+geons

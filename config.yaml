@@ -18,13 +18,14 @@ zones:
   # example query: dig +short TXT 4.4.2.2.geons @127.0.0.1 -p 5300
   - name: ".geons"
     database:
-      path: "GeoLite2-Country.mmdb"
+      path: "GeoLite2-Country.mmdb" # "GeoIP2-Country.mmdb"
       type: "country"
     response:
       # Separator between field values in TXT record
       separator: "|"
       # Fields to extract (use field names from the structure geoip2.Country)
       # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
+      # see https://dev.maxmind.com/geoip/docs/databases/city-and-country/
       #
       # Example response for 8.8.8.8.geons: "US|United States"
       fields:
@@ -45,6 +46,7 @@ zones:
       # Available fields:
       #   AutonomousSystemNumber - ASN number (e.g., 15169)
       #   AutonomousSystemOrganization - Organization name (e.g., "Google LLC")
+      # see https://dev.maxmind.com/geoip/docs/databases/asn/
       #
       # Example response for 8.8.8.8.asn: "15169|Google LLC"
       fields:
@@ -56,7 +58,7 @@ zones:
   # example query: dig +short TXT 4.4.2.2.geocity @127.0.0.1 -p 5300
   - name: ".geocity"
     database:
-      path: "GeoLite2-City.mmdb"
+      path: "GeoLite2-City.mmdb" # "GeoIP2-City.mmdb"
       type: "city"
     response:
       # Separator between field values in TXT record
@@ -69,6 +71,7 @@ zones:
       #   Location.Latitude, Location.Longitude, Location.TimeZone, Location.MetroCode
       #   Postal.Code
       #   Continent.Code, Continent.Names.en
+      # see https://dev.maxmind.com/geoip/docs/databases/city-and-country/
       #
       # Example response for 8.8.8.8.geocity:
       # "Mountain View|California|US|37.4056|-122.0775|America/Los_Angeles"

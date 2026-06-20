@@ -1,6 +1,6 @@
 # GeoNS - Lightweight DNS Server for IP Geolocation
 
-A simple, fast, and configurable DNS server-like microservice that returns geolocation information for IP addresses using [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geoip2/geolite2/) databases. Supports **Country**, **City**, and **ASN** databases with multi-zone configuration.
+A simple, fast, and configurable DNS server-like microservice that returns geolocation information for IP addresses using [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geoip2/geolite2/) and [MaxMind City and Country GeoIP2](https://dev.maxmind.com/geoip/docs/databases/city-and-country/) databases. Supports **Country**, **City**, and **ASN** databases with multi-zone configuration.
 
 Essentially, it's a database access interface via the DNS protocol, designed for high-load systems; it eliminates the need for such projects to implement dependencies for database updates and read interfaces.
 
@@ -15,8 +15,8 @@ Essentially, it's a database access interface via the DNS protocol, designed for
     - [`server`](#server)
     - [`zones`](#zones)
   - [Available Fields](#available-fields)
-    - [GeoLite2-Country (`type: country`)](#geolite2-country-type-country)
-    - [GeoLite2-City (`type: city`)](#geolite2-city-type-city)
+    - [GeoLite2/GeoIP2-Country (`type: country`)](#geolite2geoip2-country-type-country)
+    - [GeoLite2/GeoIP2-City (`type: city`)](#geolite2geoip2-city-type-city)
     - [GeoLite2-ASN (`type: asn`)](#geolite2-asn-type-asn)
   - [Usage](#usage)
     - [Running the Server](#running-the-server)
@@ -48,9 +48,9 @@ Essentially, it's a database access interface via the DNS protocol, designed for
 ## Features
 
 - **Lightweight DNS microservice** with minimal dependencies
-- **Multi-database support** - GeoLite2-Country, GeoLite2-City, and GeoLite2-ASN
+- **Multi-database support** - Country, City, and ASN GeoIP2Lite/GeoIP2 databases
 - **Multi-zone configuration** - serve multiple databases on different domain suffixes
-- **Configurable response fields** - extract any field from the GeoIP2 database structure using dot-notation paths
+- **Configurable response fields** - extract any field from the GeoIP2Lite/GeoIP2 database structure using dot-notation paths
 - **Array indexing support** - access slice elements like `Subdivisions[0].Names.en`
 - **Access Control Lists (ACL)** - restrict access to specific CIDR ranges
 - **Hot reload** - reload configuration and database without downtime (`SIGHUP`)
@@ -61,10 +61,7 @@ Essentially, it's a database access interface via the DNS protocol, designed for
 ## Requirements
 
 - Go 1.25 or higher
-- One or more MaxMind GeoLite2 database files ([download here](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)):
-  - `GeoLite2-Country.mmdb`
-  - `GeoLite2-City.mmdb`
-  - `GeoLite2-ASN.mmdb`
+- One or more MaxMind database files GeoIP2 and GeoLite2 City and Country, GeoLite2 ASN Databases
 
 ## Installation
 
@@ -79,7 +76,7 @@ cd geons
 go mod download
 ```
 
-3. Download one or more GeoLite2 `.mmdb` files from MaxMind and place them in the project directory.
+3. Download one or more GeoIP2/GeoLite2 `.mmdb` files from MaxMind and place them in the project directory.
 
 ## Configuration
 
@@ -102,7 +99,7 @@ zones:
   # Country zone
   - name: ".geons"
     database:
-      path: "GeoLite2-Country.mmdb"
+      path: "GeoLite2-Country.mmdb" # "GeoIP2-Country.mmdb"
       type: "country"
     response:
       separator: "|"
@@ -124,7 +121,7 @@ zones:
   # City zone
   - name: ".geocity"
     database:
-      path: "GeoLite2-City.mmdb"
+      path: "GeoLite2-City.mmdb" # "GeoIP2-City.mmdb"      
       type: "city"
     response:
       separator: "|"
@@ -149,7 +146,7 @@ server:
 zones:
   - name: ".geo"
     database:
-      path: "GeoLite2-Country.mmdb"
+      path: "GeoLite2-Country.mmdb" # "GeoIP2-Country.mmdb" 
       type: "country"
     response:
       separator: "|"
@@ -170,7 +167,7 @@ zones:
 Array of zone configurations. Each zone has:
 
 - `name` - Domain suffix for this zone (e.g., `.geons`, `.city`, `.asn`)
-- `database.path` - Path to MaxMind GeoLite2 `.mmdb` file
+- `database.path` - Path to MaxMind GeoLite2/GeoIP2 `.mmdb` file
 - `database.type` - Database type: `country`, `city`, or `asn`
 - `response.separator` - String to separate field values in TXT response
 - `response.fields` - List of fields to extract from the GeoIP2 database (dot-notation paths)
@@ -179,7 +176,7 @@ Array of zone configurations. Each zone has:
 
 The `fields` option supports any field from the corresponding GeoIP2 structure. Use dot-notation paths to access nested fields.
 
-### GeoLite2-Country (`type: country`)
+### GeoLite2/GeoIP2-Country (`type: country`)
 
 Based on the `geoip2.Country` structure:
 
@@ -192,7 +189,7 @@ Based on the `geoip2.Country` structure:
 - `RegisteredCountry.IsoCode` - Registered country ISO code
 - `RepresentedCountry.IsoCode` - Represented country ISO code
 
-### GeoLite2-City (`type: city`)
+### GeoLite2/GeoIP2-City (`type: city`)
 
 Based on the `geoip2.City` structure:
 
@@ -318,7 +315,7 @@ The server will:
 2. Re-open all configured MaxMind database files
 3. Apply new settings atomically
 
-This is useful when you update the GeoLite2 database or change configuration.
+This is useful when you update the GeoIP2/GeoLite2 database or change configuration.
 
 ### Graceful Shutdown
 
@@ -422,13 +419,14 @@ All trademarks are the property of their respective owners.
 
 Database Copyright (c) [MaxMind](https://www.maxmind.com/), Inc.
 - [GeoLite2 End User License Agreement](https://www.maxmind.com/en/geolite2/eula)
+- [GeoIP2 End User License Agreement](https://www.maxmind.com/en/end-user-license-agreement)
 - [Creative Commons Corporation Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ## Acknowledgments
 
 - [miekg/dns](https://github.com/miekg/dns) - DNS library for Go
 - [oschwald/geoip2-golang](https://github.com/oschwald/geoip2-golang) - MaxMind GeoIP2 Reader
-- [MaxMind](https://www.maxmind.com/) - GeoLite2 geolocation database
+- [MaxMind](https://www.maxmind.com/) - GeoIP2/GeoLite2 geolocation database
 
 ## Contributing
 

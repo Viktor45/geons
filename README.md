@@ -239,6 +239,7 @@ go build -o geons
 ### Querying the Server
 
 Use `dig`, `host`, or any DNS client to query the server.
+And, of course, you can retrieve microservice data using any programming language by querying the TXT DNS-record of the appropriate synthetic domain.
 
 #### Country zone queries (`.geons`)
 
@@ -292,10 +293,12 @@ dig TXT 77.88.8.8.asn @127.0.0.1 -p 5300
 
 ### Using `host` Command
 
+> Note: You cannot specify port number for `host` command on macos, use `dig` command instead.
+
 ```bash
-host -t txt 8.8.8.8.geons 127.0.0.1
-host -t txt 8.8.8.8.geocity 127.0.0.1
-host -t txt 8.8.8.8.asn 127.0.0.1
+host -p 5300 -t txt 8.8.8.8.geons 127.0.0.1
+host -p 5300 -t txt 8.8.8.8.geocity 127.0.0.1
+host -p 5300 -t txt 8.8.8.8.asn 127.0.0.1
 ```
 
 ### Hot Reload Configuration

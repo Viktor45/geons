@@ -91,9 +91,43 @@ For containerized environments, there is a `GEONS_CONFIG` variable that specifie
 
 For Docker details, see [Dockerfile](Dockerfile).
 
+Docker pull example:
+
+```bash
+docker pull ghcr.io/viktor45/geons:latest
+```
+
+Docker run example:
+
+```bash
+docker run -d \
+  -p 5300:5300/udp \
+  -v $(pwd)/data:/data:ro \
+  ghcr.io/viktor45/geons:latest
+```
+
+>NOTE: Make sure the `./data` folder containing the configuration `config.yaml` and database with mmdb files exists.
+
 For Docker compose file, see [compose.yaml](compose.yaml)
 
 For Podman systemd quadlet, see [geons.container](geons.container).
+
+Podman pull example:
+
+```bash
+podman pull ghcr.io/viktor45/geons:latest
+```
+
+Podman run example:
+
+```bash
+podman run --name geons --replace --rm --cgroups=split --sdnotify=conmon -d \
+-v $(pwd)/data:/data:ro,z,shared \
+-p 5300:5300/udp \
+ghcr.io/viktor45/geons:latest
+```
+
+>NOTE: Make sure the `./data` folder containing the configuration `config.yaml` and database with mmdb files exists.
 
 ### Example Configuration with All Three Zones
 

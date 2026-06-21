@@ -29,22 +29,19 @@ jobs:
   build-and-push:
     name: Build and Push Image
     runs-on: ubuntu-latest
-    timeout-minutes: 20 # multi-platform takes longer
-
+    timeout-minutes: 20
     steps:
       - name: Normalize repository owner to lowercase
         run: |
           echo "REPO_OWNER_LOWER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
-          KO_DOCKER_REPO="${IMAGE_REGISTRY}/${REPO_OWNER_LOWER}"
-          export KO_DOCKER_REPO="${IMAGE_REGISTRY}/${REPO_OWNER_LOWER}"
 
       - name: Check out the repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
@@ -74,10 +71,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix={{branch}}-
+            type=semver,pattern={{major}}
+            type=ref,event=branch,enable=${{ github.ref_type == 'branch' }}
+            type=ref,event=tag,enable=${{ github.ref_type == 'tag' }}
+            type=sha,prefix=sha-,enable=${{ github.ref_type == 'branch' }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push image
@@ -113,7 +112,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     needs: build-and-push
-
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7

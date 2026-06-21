@@ -11,7 +11,7 @@ ARG TARGETVARIANT
 RUN set -eux; \
     if [ "$TARGETARCH" = "arm" ]; then export GOARM="${TARGETVARIANT#v}"; fi; \
     CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" \
-    go build -trimpath -ldflags="-s -w" -o /out/geons ./geons
+    go build -trimpath -ldflags="-s -w" -o /out/geons .
 
 FROM --platform=$BUILDPLATFORM alpine:3.24 AS certs
 

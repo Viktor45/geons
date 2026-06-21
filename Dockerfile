@@ -1,7 +1,8 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.4-alpine3.23 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.4-alpine3.24 AS build
 
 WORKDIR /src
 COPY go.mod go.sum ./
+COPY main.go ./
 RUN go mod download
 
 ARG TARGETOS
@@ -14,14 +15,15 @@ RUN set -eux; \
 
 FROM --platform=$BUILDPLATFORM alpine:3.24 AS certs
 
-RUN apk add --no-cache ca-certificates \
-    && mkdir -p /data
+RUN apk -U upgrade && apk add --no-cache ca-certificates \
+    && mkdir -p /app
 
 FROM scratch
 
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=build /out/geons /usr/local/bin/geons
+COPY --from=build /app /app
+COPY --from=build /out/geons /app/geons
 
 EXPOSE 5300
 
-ENTRYPOINT ["geons"]
+ENTRYPOINT ["/app/geons"]

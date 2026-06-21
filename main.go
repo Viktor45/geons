@@ -69,7 +69,7 @@ var (
 
 func main() {
 	// 1. Initial configuration load
-	if err := loadConfig(); err != nil {
+	if err := loadConfig("GEONS_CONFIG", "./data/config.yaml"); err != nil {
 		log.Fatalf("Initial load error: %v", err)
 	}
 
@@ -80,7 +80,7 @@ func main() {
 	addr := fmt.Sprintf("%s:%d", cfg.Server.BindAddress, cfg.Server.Port)
 	mu.RUnlock()
 
-	log.Printf("Starting DNS server on %s (UDP)...", addr)
+	log.Printf("Starting server on %s (UDP)...", addr)
 
 	server := &dns.Server{Addr: addr, Net: "udp"}
 
@@ -94,7 +94,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
-	log.Println("Server started. Press Ctrl+C to stop or send SIGHUP to reload configuration")
+	log.Println("Server started successfully. Waiting for signals...")
 
 	// 4. Main signal processing loop
 	for {
@@ -127,8 +127,11 @@ func main() {
 
 // --- Configuration loading and reloading ---
 
-func loadConfig() error {
-	configPath := "config.yaml"
+func loadConfig(name string, fallback string) error {
+	configPath := os.Getenv(name)
+	if configPath == "" {
+		configPath = fallback
+	}
 	absConfigPath, err := filepath.Abs(configPath)
 	if err != nil {
 		return fmt.Errorf("failed to resolve config path %s: %v", configPath, err)
@@ -176,7 +179,7 @@ func loadConfig() error {
 	// Load zones
 	newZones := make(map[string]*Zone)
 	for _, zoneCfg := range newCfg.Zones {
-		zone, err := loadZone(zoneCfg, absConfigPath)
+		zone, err := loadZone(zoneCfg, filepath.Dir(absConfigPath))
 		if err != nil {
 			// Close already opened zones on error
 			for _, z := range newZones {
@@ -238,10 +241,10 @@ func loadZone(zoneCfg ZoneConfig, configDir string) (*Zone, error) {
 	if zoneCfg.Database.Path == "" {
 		return nil, fmt.Errorf("database.path must be set")
 	}
-	//zoneCfg.Database.Path = filepath.Clean(zoneCfg.Database.Path)
-	//if !filepath.IsAbs(zoneCfg.Database.Path) {
-	//	zoneCfg.Database.Path = filepath.Join(configDir, zoneCfg.Database.Path)
-	//}
+	zoneCfg.Database.Path = filepath.Clean(zoneCfg.Database.Path)
+	if !filepath.IsAbs(zoneCfg.Database.Path) {
+		zoneCfg.Database.Path = filepath.Join(configDir, zoneCfg.Database.Path)
+	}
 
 	dbInfo, err := os.Stat(zoneCfg.Database.Path)
 	if err != nil {
@@ -267,7 +270,7 @@ func loadZone(zoneCfg ZoneConfig, configDir string) (*Zone, error) {
 }
 
 func reloadConfig() error {
-	return loadConfig()
+	return loadConfig("GEONS_CONFIG", "./data/config.yaml")
 }
 
 // --- DNS request handler ---

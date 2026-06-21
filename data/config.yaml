@@ -5,8 +5,10 @@ server:
   # Whitelist of networks (CIDR) that are allowed to make requests
   allowed_clients:
     - "127.0.0.0/8"
-    - "192.168.0.0/16"
-    - "10.0.0.0/8"
+    # - "192.168.0.0/16"
+    # - "10.0.0.0/8"
+    # - "0.0.0.0/8"
+    # - "::/0"
 
 # Zones configuration - only configured zones will be loaded
 # Each zone corresponds to a domain suffix and a specific MaxMind database

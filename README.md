@@ -81,6 +81,7 @@ go mod download
 ## Configuration
 
 Create a `config.yaml` file. The server supports multiple zones, each with its own database and response configuration.
+For containerized environments, there is a `GEONS_CONFIG` variable that specifies the location of the configuration file.
 
 ### Example Configuration with All Three Zones
 

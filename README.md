@@ -9,6 +9,7 @@ Essentially, it's a database access interface via the DNS protocol, designed for
   - [Requirements](#requirements)
   - [Installation](#installation)
   - [Configuration](#configuration)
+    - [Containerized environments](#containerized-environments)
     - [Example Configuration with All Three Zones](#example-configuration-with-all-three-zones)
     - [Minimal Configuration (Single Zone)](#minimal-configuration-single-zone)
   - [Configuration Options](#configuration-options)
@@ -80,20 +81,31 @@ go mod download
 
 ## Configuration
 
-Create a `config.yaml` file. The server supports multiple zones, each with its own database and response configuration.
-For containerized environments, there is a `GEONS_CONFIG` variable that specifies the location of the configuration file.
+Server uses `config.yaml` as configuration file. The server supports multiple zones, each with its own database and response configuration.
+
+An example `data/config.yaml` file is available [here](./data/config.yaml).
+
+### Containerized environments
+
+For containerized environments, there is a `GEONS_CONFIG` variable that specifies the location of the configuration file. 
+
+For Docker details, see [Dockerfile](Dockerfile).
+
+For Docker compose file, see [compose.yaml](compose.yaml)
+
+For Podman systemd quadlet, see [geons.container](geons.container).
 
 ### Example Configuration with All Three Zones
 
 ```yaml
 server:
   port: 5300
-  bind_address: "127.0.0.1"
+  bind_address: "127.0.0.1" # "0.0.0.0"
   # Whitelist of networks (CIDR) that are allowed to make requests
   allowed_clients:
     - "127.0.0.0/8"
-    - "192.168.0.0/16"
-    - "10.0.0.0/8"
+  #  - "192.168.0.0/16"
+  #  - "10.0.0.0/8"
 
 # Zones configuration - only configured zones will be loaded
 zones:
@@ -140,7 +152,7 @@ zones:
 ```yaml
 server:
   port: 5300
-  bind_address: "127.0.0.1"
+  bind_address: "127.0.0.1" # "0.0.0.0"
   allowed_clients:
     - "127.0.0.0/8"
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/netip"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/miekg/dns"
-	"github.com/oschwald/geoip2-golang"
+	"github.com/oschwald/geoip2-golang/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -337,8 +338,8 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
+	ip, err := netip.ParseAddr(ipStr)
+	if err != nil {
 		m.Rcode = dns.RcodeNameError
 		w.WriteMsg(m)
 		return
@@ -373,6 +374,26 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 		setTXTResponse(m, q.Name, "UNKNOWN")
 		w.WriteMsg(m)
 		return
+	}
+	// v2 returns records with populated Network/IPAddress even when no data is present.
+	// Use HasData() to detect missing GeoIP data.
+	switch r := record.(type) {
+	case *geoip2.City:
+		if !r.HasData() {
+			log.Printf("GeoIP no data for %s", ipStr)
+			setTXTResponse(m, q.Name, "UNKNOWN")
+			w.WriteMsg(m)
+			return
+		}
+	case *geoip2.ASN:
+		if !r.HasData() {
+			log.Printf("GeoIP no data for %s", ipStr)
+			setTXTResponse(m, q.Name, "UNKNOWN")
+			w.WriteMsg(m)
+			return
+		}
+		// Note: For Country, we skip HasData() check as it may return false for partial data
+		// and rely on field extraction to determine if we have usable data
 	}
 
 	// Extract configured fields using reflection

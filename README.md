@@ -61,8 +61,8 @@ Essentially, it's a database access interface via the DNS protocol, designed for
 
 ## Requirements
 
-- Go 1.25 or higher
-- One or more MaxMind database files GeoIP2 and GeoLite2 City and Country, GeoLite2 ASN Databases
+- Go 1.26 or higher
+- One or more MaxMind database files: GeoLite2/GeoIP2 City and Country, GeoLite2 ASN Databases
 
 ## Installation
 
@@ -151,8 +151,8 @@ zones:
     response:
       separator: "|"
       fields:
-        - "Country.IsoCode"
-        - "Country.Names.en"
+        - "Country.ISOCode"
+        - "Country.Names.English"
 
   # ASN zone
   - name: ".asn"
@@ -173,9 +173,9 @@ zones:
     response:
       separator: "|"
       fields:
-        - "City.Names.en"
-        - "Subdivisions[0].Names.en"
-        - "Country.IsoCode"
+        - "City.Names.English"
+        - "Subdivisions[0].Names.English"
+        - "Country.ISOCode"
         - "Location.Latitude"
         - "Location.Longitude"
         - "Location.TimeZone"
@@ -198,7 +198,8 @@ zones:
     response:
       separator: "|"
       fields:
-        - "Country.IsoCode"
+        - "Country.ISOCode"
+        - "Country.Names.English"
 ```
 
 ## Configuration Options
@@ -221,40 +222,50 @@ Array of zone configurations. Each zone has:
 
 ## Available Fields
 
-The `fields` option supports any field from the corresponding GeoIP2 structure. Use dot-notation paths to access nested fields.
+The `fields` option supports any field from the corresponding geoip2-golang v2 structure. Use dot-notation paths to access nested fields.
+
+**Language support:** In geoip2-golang v2, localized names are typed fields (not map lookups):
+- `English`, `German`, `Spanish`, `French`, `Japanese`, `Russian`, `SimplifiedChinese`, `BrazilianPortuguese`
 
 ### GeoLite2/GeoIP2-Country (`type: country`)
 
 Based on the `geoip2.Country` structure:
 
-- `Country.IsoCode` - ISO 3166-1 alpha-2 country code (e.g., "US", "DE")
-- `Country.Names.en` - Country name in English
-- `Country.Names.ru` - Country name in Russian
-- `Country.Names.*` - Country name in any available language
+- `Country.ISOCode` - ISO 3166-1 alpha-2 country code (e.g., "US", "DE")
+- `Country.Names.English` - Country name in English
+- `Country.Names.Russian` - Country name in Russian
+- `Country.Names.German` - Country name in German
+- `Country.Names.French` - Country name in French
+- `Country.Names.Spanish` - Country name in Spanish
+- `Country.Names.Japanese` - Country name in Japanese
+- `Country.Names.SimplifiedChinese` - Country name in Simplified Chinese
+- `Country.Names.BrazilianPortuguese` - Country name in Brazilian Portuguese
 - `Continent.Code` - Continent code (e.g., "NA", "EU", "AS")
-- `Continent.Names.en` - Continent name in English
-- `RegisteredCountry.IsoCode` - Registered country ISO code
-- `RepresentedCountry.IsoCode` - Represented country ISO code
+- `Continent.Names.English` - Continent name in English
+- `RegisteredCountry.ISOCode` - Registered country ISO code
+- `RepresentedCountry.ISOCode` - Represented country ISO code
 
 ### GeoLite2/GeoIP2-City (`type: city`)
 
 Based on the `geoip2.City` structure:
 
-- `City.Names.en` - City name in English
-- `City.Names.ru` - City name in Russian
-- `City.GeoNameId` - City GeoName ID
-- `Subdivisions[0].IsoCode` - First subdivision (state/region) ISO code
-- `Subdivisions[0].Names.en` - First subdivision name in English
-- `Subdivisions[1].Names.en` - Second subdivision name (if available)
-- `Country.IsoCode` - Country ISO code
-- `Country.Names.en` - Country name in English
+- `City.Names.English` - City name in English
+- `City.Names.Russian` - City name in Russian
+- `City.Names.German` - City name in German
+- `City.GeoNameID` - City GeoName ID
+- `Subdivisions[0].ISOCode` - First subdivision (state/region) ISO code
+- `Subdivisions[0].Names.English` - First subdivision name in English
+- `Subdivisions[0].Names.Russian` - First subdivision name in Russian
+- `Subdivisions[1].Names.English` - Second subdivision name (if available)
+- `Country.ISOCode` - Country ISO code
+- `Country.Names.English` - Country name in English
+- `Country.Names.Russian` - Country name in Russian
 - `Location.Latitude` - Latitude coordinate
 - `Location.Longitude` - Longitude coordinate
 - `Location.TimeZone` - IANA time zone (e.g., "America/Los_Angeles")
-- `Location.MetroCode` - Metro code (US only)
-- `Location.AccuracyRadius` - Accuracy radius in kilometers
 - `Postal.Code` - Postal/ZIP code
 - `Continent.Code` - Continent code
+- `Continent.Names.English` - Continent name in English
 
 > **Note:** Array indexing is supported using `[N]` syntax (e.g., `Subdivisions[0]`). If the index is out of bounds, an empty string is returned.
 
@@ -289,15 +300,12 @@ And, of course, you can retrieve microservice data using any programming languag
 
 ```bash
 # Query country info for Google DNS (8.8.8.8)
-dig TXT 8.8.8.8.geons @127.0.0.1 -p 5300
-
-# Expected response:
-# ;; ANSWER SECTION:
-# 8.8.8.8.geons.    60  IN  TXT "US|United States"
+dig +short TXT 8.8.8.8.geons @127.0.0.1 -p 5300
+# Expected response: "US|United States"
 
 # Query for Cloudflare DNS (1.1.1.1)
-dig TXT 1.1.1.1.geons @127.0.0.1 -p 5300
-# 1.1.1.1.geons.    60  IN  TXT "AU|Australia"
+dig +short TXT 1.1.1.1.geons @127.0.0.1 -p 5300
+# Expected response: "AU|Australia"
 
 # IPv6 query
 dig TXT "2001:4860:4860::8888.geons" @127.0.0.1 -p 5300
@@ -307,32 +315,28 @@ dig TXT "2001:4860:4860::8888.geons" @127.0.0.1 -p 5300
 
 ```bash
 # Query detailed location info
-dig TXT 8.8.8.8.geocity @127.0.0.1 -p 5300
-
-# Expected response:
-# 8.8.8.8.geocity.    60  IN  TXT "Mountain View|California|US|37.4056|-122.0775|America/Los_Angeles"
+dig +short TXT 8.8.8.8.geocity @127.0.0.1 -p 5300
+# Expected response: "Mountain View|California|US|37.4056|-122.0775|America/Los_Angeles"
 
 # Query for Yandex DNS
-dig TXT 77.88.8.8.geocity @127.0.0.1 -p 5300
-# 77.88.8.8.geocity.    60  IN  TXT "Moscow|Moscow|RU|55.7527|37.6175|Europe/Moscow"
+dig +short TXT 77.88.8.8.geocity @127.0.0.1 -p 5300
+# Expected response: "Moscow|Moscow|RU|55.7527|37.6175|Europe/Moscow"
 ```
 
 #### ASN zone queries (`.asn`)
 
 ```bash
 # Query ASN info for Google DNS
-dig TXT 8.8.8.8.asn @127.0.0.1 -p 5300
-
-# Expected response:
-# 8.8.8.8.asn.     60  IN  TXT "15169|Google LLC"
+dig +short TXT 8.8.8.8.asn @127.0.0.1 -p 5300
+# Expected response: "15169|Google LLC"
 
 # Query for Cloudflare DNS
-dig TXT 1.1.1.1.asn @127.0.0.1 -p 5300
-# 1.1.1.1.asn.     60  IN  TXT "13335|Cloudflare, Inc."
+dig +short TXT 1.1.1.1.asn @127.0.0.1 -p 5300
+# Expected response: "13335|Cloudflare, Inc."
 
 # Query for Yandex DNS
-dig TXT 77.88.8.8.asn @127.0.0.1 -p 5300
-# 77.88.8.8.asn.   60  IN  TXT "13238|Yandex LLC"
+dig +short TXT 77.88.8.8.asn @127.0.0.1 -p 5300
+# Expected response: "13238|Yandex LLC"
 ```
 
 ### Using `host` Command

@@ -25,14 +25,15 @@ zones:
     response:
       # Separator between field values in TXT record
       separator: "|"
-      # Fields to extract (use field names from the structure geoip2.Country)
-      # Example: Country.IsoCode, Country.Names.en, Country.Names.ru, Continent.Code
-      # see https://dev.maxmind.com/geoip/docs/databases/city-and-country/
+      # Fields to extract from geoip2.Country structure
+      # For geoip2.Country, the path is: Country.ISOCode (not Country.Country.ISOCode)
+      # For localized names: Country.Names.English (not Names["en"])
+      # See https://dev.maxmind.com/geoip/docs/databases/city-and-country/
       #
       # Example response for 8.8.8.8.geons: "US|United States"
       fields:
-        - "Country.IsoCode"
-        - "Country.Names.en"
+        - "Country.ISOCode"
+        - "Country.Names.English"
 
   # ASN zone
   # example domain for ip: 4.4.2.2 is 4.4.2.2.asn
@@ -66,21 +67,22 @@ zones:
       # Separator between field values in TXT record
       separator: "|"
       # Fields to extract from geoip2.City structure
+      # In geoip2 v2, localized names use typed fields: English, German, Spanish, French, etc.
       # Available fields:
-      #   City.Names.en, City.Names.ru, City.GeoNameId
-      #   Subdivisions[0].Names.en, Subdivisions[0].IsoCode
-      #   Country.IsoCode, Country.Names.en, Country.Names.ru
-      #   Location.Latitude, Location.Longitude, Location.TimeZone, Location.MetroCode
+      #   City.Names.English, City.Names.Russian, City.GeoNameID
+      #   Subdivisions[0].Names.English, Subdivisions[0].ISOCode
+      #   Country.ISOCode, Country.Names.English, Country.Names.Russian
+      #   Location.Latitude, Location.Longitude, Location.TimeZone
       #   Postal.Code
-      #   Continent.Code, Continent.Names.en
-      # see https://dev.maxmind.com/geoip/docs/databases/city-and-country/
+      #   Continent.Code, Continent.Names.English
+      # See https://dev.maxmind.com/geoip/docs/databases/city-and-country/
       #
       # Example response for 8.8.8.8.geocity:
       # "Mountain View|California|US|37.4056|-122.0775|America/Los_Angeles"
       fields:
-        - "City.Names.en"
-        - "Subdivisions[0].Names.en"
-        - "Country.IsoCode"
+        - "City.Names.English"
+        - "Subdivisions[0].Names.English"
+        - "Country.ISOCode"
         - "Location.Latitude"
         - "Location.Longitude"
         - "Location.TimeZone"

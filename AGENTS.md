@@ -2,8 +2,10 @@
 
 ## What this repository does
 - `geons` is a lightweight Go DNS server that returns geolocation information in TXT records.
-- It resolves queries of the form `<ip><domain_suffix>` using a MaxMind GeoLite2 Country database.
+- It resolves queries of the form `<ip><domain_suffix>` using MaxMind GeoLite2/GeoIP2 databases (Country, City, ASN).
+- Supports **multi-zone configuration**: multiple domain suffixes (`.geons`, `.geocity`, `.asn`) each pointing to different databases.
 - The server is configured through `config.yaml`; the main implementation is in `main.go`.
+- Uses geoip2-golang/v2 for database access with modern Go types (netip.Addr, typed Names fields)
 
 ## Key files
 - `main.go` — application entrypoint, DNS request handling, config loading, hot reload, graceful shutdown.
@@ -21,13 +23,16 @@
 - Docker build is defined by `Dockerfile` and compiles the binary into `/out/geons`.
 
 ## Runtime behavior to preserve
-- Config is loaded from `config.yaml` in the current working directory.
-- `SIGHUP` reloads config and database atomically.
+- Config is loaded from `config.yaml` in the current working directory (or `$GEONS_CONFIG` in containers).
+- Multiple zones support: `.geons` (Country), `.geocity` (City), `.asn` (ASN) each with independent databases and field configurations.
+- `SIGHUP` reloads config and all zone databases atomically.
 - `SIGINT` / `SIGTERM` perform graceful shutdown.
 - Only DNS TXT queries are handled; other query types return `NOTIMP`.
-- Requests are allowed only if the client IP matches `server.allowed_clients`.
-- Domain names are parsed by stripping `server.domain_suffix`; invalid IPs and suffix mismatches return `NXDOMAIN`.
-- GeoIP field extraction uses reflection with paths like `Country.IsoCode`, `Country.Names.en`, or `Continent.Code`.
+- Requests are allowed only if the client IP matches `server.allowed_clients` CIDR ranges.
+- Domain names are parsed by stripping the zone's `name` (domain suffix); invalid IPs and suffix mismatches return `NXDOMAIN`.
+- GeoIP field extraction uses reflection with paths like `Country.ISOCode`, `Country.Names.English`, `Subdivisions[0].Names.English`, `Location.Latitude` (geoip2 v2 API).
+- Supports array indexing: `Subdivisions[0]`, `Subdivisions[1]` (returns empty string if out of bounds).
+- Bind address defaults to `127.0.0.1` (configurable via `server.bind_address`).
 
 ## Code conventions and expectations
 - Keep the code minimal and dependency-light.

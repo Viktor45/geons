@@ -4,29 +4,58 @@ import (
 	"net"
 	"reflect"
 	"testing"
+
+	"github.com/oschwald/geoip2-golang/v2"
 )
 
-func TestExtractField_NestedAndMap(t *testing.T) {
-	type CountryStruct struct {
-		IsoCode string
-		Names   map[string]string
-	}
-	type Record struct {
-		Country CountryStruct
+func TestExtractField_CountryRecord(t *testing.T) {
+	// Test geoip2.Country structure with correct field paths for v2
+	country := &geoip2.Country{
+		Country: geoip2.CountryRecord{ISOCode: "US", Names: geoip2.Names{English: "United States"}},
 	}
 
-	r := &Record{Country: CountryStruct{IsoCode: "US", Names: map[string]string{"en": "United States"}}}
+	v := reflect.ValueOf(country)
 
-	v := reflect.ValueOf(r)
-
-	got := extractField(v, "Country.IsoCode")
+	got := extractField(v, "Country.ISOCode")
 	if got != "US" {
-		t.Fatalf("expected IsoCode 'US', got '%s'", got)
+		t.Fatalf("expected Country.ISOCode 'US', got '%s'", got)
 	}
 
-	got = extractField(v, "Country.Names.en")
+	got = extractField(v, "Country.Names.English")
 	if got != "United States" {
-		t.Fatalf("expected Names.en 'United States', got '%s'", got)
+		t.Fatalf("expected Country.Names.English 'United States', got '%s'", got)
+	}
+}
+
+func TestExtractField_CityAndASN(t *testing.T) {
+	city := &geoip2.City{
+		City:         geoip2.CityRecord{Names: geoip2.Names{English: "San Francisco"}},
+		Subdivisions: []geoip2.CitySubdivision{{ISOCode: "CA", Names: geoip2.Names{German: "Kalifornien"}}},
+	}
+
+	v := reflect.ValueOf(city)
+
+	got := extractField(v, "City.Names.English")
+	if got != "San Francisco" {
+		t.Fatalf("expected City.Names.English 'San Francisco', got '%s'", got)
+	}
+
+	got = extractField(v, "Subdivisions[0].Names.German")
+	if got != "Kalifornien" {
+		t.Fatalf("expected Subdivisions[0].Names.German 'Kalifornien', got '%s'", got)
+	}
+
+	asn := &geoip2.ASN{AutonomousSystemNumber: 64496, AutonomousSystemOrganization: "Example ASN Org"}
+	v = reflect.ValueOf(asn)
+
+	got = extractField(v, "AutonomousSystemNumber")
+	if got != "64496" {
+		t.Fatalf("expected AutonomousSystemNumber '64496', got '%s'", got)
+	}
+
+	got = extractField(v, "AutonomousSystemOrganization")
+	if got != "Example ASN Org" {
+		t.Fatalf("expected AutonomousSystemOrganization 'Example ASN Org', got '%s'", got)
 	}
 }
 

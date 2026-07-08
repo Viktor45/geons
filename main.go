@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -15,7 +16,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/rdata"
 	"github.com/oschwald/geoip2-golang/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -111,9 +113,7 @@ func main() {
 				}
 			case syscall.SIGINT, syscall.SIGTERM:
 				log.Printf("Received %v signal, shutting down...", sig)
-				if err := server.Shutdown(); err != nil {
-					log.Printf("Graceful shutdown error: %v", err)
-				}
+				server.Shutdown(context.Background())
 				log.Println("Server stopped gracefully")
 				return
 			}
@@ -276,9 +276,8 @@ func reloadConfig() error {
 
 // --- DNS request handler ---
 
-func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
-	m := new(dns.Msg)
-	m.SetReply(r)
+func handleDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
+	m := newDNSReply(r)
 	m.Authoritative = true
 
 	// ACL check (whitelist) under RLock
@@ -297,26 +296,33 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 	if !allowed {
 		log.Printf("Access denied for IP: %s", clientIPStr)
 		m.Rcode = dns.RcodeRefused
-		w.WriteMsg(m)
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 
 	if len(r.Question) == 0 {
-		w.WriteMsg(m)
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 
 	q := r.Question[0]
+	qtype := dns.RRToType(q)
 
 	// We only handle TXT requests
-	if q.Qtype != dns.TypeTXT {
+	if qtype != dns.TypeTXT {
 		m.Rcode = dns.RcodeNotImplemented
-		w.WriteMsg(m)
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 
 	// Parse IP and determine zone from domain name
-	qname := strings.ToLower(strings.TrimSuffix(q.Name, "."))
+	qname := strings.ToLower(strings.TrimSuffix(q.Header().Name, "."))
 
 	// Find matching zone
 	mu.RLock()
@@ -334,14 +340,18 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	if matchedZone == nil {
 		m.Rcode = dns.RcodeNameError // NXDOMAIN
-		w.WriteMsg(m)
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 
 	ip, err := netip.ParseAddr(ipStr)
 	if err != nil {
 		m.Rcode = dns.RcodeNameError
-		w.WriteMsg(m)
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 
@@ -365,14 +375,18 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 
 	if lookupErr != nil {
 		log.Printf("IP lookup error for %s: %v", ipStr, lookupErr)
-		setTXTResponse(m, q.Name, "ERROR")
-		w.WriteMsg(m)
+		setTXTResponse(m, q.Header().Name, "ERROR")
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 	if record == nil {
 		log.Printf("IP lookup returned nil record for %s", ipStr)
-		setTXTResponse(m, q.Name, "UNKNOWN")
-		w.WriteMsg(m)
+		setTXTResponse(m, q.Header().Name, "UNKNOWN")
+		if _, err := m.WriteTo(w); err != nil {
+			log.Printf("write error: %v", err)
+		}
 		return
 	}
 	// v2 returns records with populated Network/IPAddress even when no data is present.
@@ -381,15 +395,19 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 	case *geoip2.City:
 		if !r.HasData() {
 			log.Printf("GeoIP no data for %s", ipStr)
-			setTXTResponse(m, q.Name, "UNKNOWN")
-			w.WriteMsg(m)
+			setTXTResponse(m, q.Header().Name, "UNKNOWN")
+			if _, err := m.WriteTo(w); err != nil {
+				log.Printf("write error: %v", err)
+			}
 			return
 		}
 	case *geoip2.ASN:
 		if !r.HasData() {
 			log.Printf("GeoIP no data for %s", ipStr)
-			setTXTResponse(m, q.Name, "UNKNOWN")
-			w.WriteMsg(m)
+			setTXTResponse(m, q.Header().Name, "UNKNOWN")
+			if _, err := m.WriteTo(w); err != nil {
+				log.Printf("write error: %v", err)
+			}
 			return
 		}
 		// Note: For Country, we skip HasData() check as it may return false for partial data
@@ -411,14 +429,31 @@ func handleDNS(w dns.ResponseWriter, r *dns.Msg) {
 		resStr = "UNKNOWN"
 	}
 
-	setTXTResponse(m, q.Name, resStr)
-	w.WriteMsg(m)
+	setTXTResponse(m, q.Header().Name, resStr)
+	if _, err := m.WriteTo(w); err != nil {
+		log.Printf("write error: %v", err)
+	}
+}
+
+func newDNSReply(r *dns.Msg) *dns.Msg {
+	m := new(dns.Msg)
+	m.ID = r.ID
+	m.Opcode = r.Opcode
+	m.Response = true
+	m.Authoritative = true
+	m.RecursionDesired = r.RecursionDesired
+	m.CheckingDisabled = r.CheckingDisabled
+	m.Security = r.Security
+	m.UDPSize = r.UDPSize
+	m.Version = r.Version
+	m.Question = append([]dns.RR(nil), r.Question...)
+	return m
 }
 
 func setTXTResponse(m *dns.Msg, name, text string) {
 	txt := &dns.TXT{
-		Hdr: dns.RR_Header{Name: name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 60},
-		Txt: []string{text},
+		Hdr: dns.Header{Name: name, Class: dns.ClassINET, TTL: 60},
+		TXT: rdata.TXT{Txt: []string{text}},
 	}
 	m.Answer = append(m.Answer, txt)
 }

@@ -1,5 +1,5 @@
-codeberg.org/miekg/dns v0.6.83 h1:lLnrDD4h0nTCW7XQ8P6ePffUsRawo6ykqtLaaiDzUoo=
-codeberg.org/miekg/dns v0.6.83/go.mod h1:58Y3ZTg6Z5ZEm/ZAAwHehbZfrD4u5mE4RByHoPEMyKk=
+codeberg.org/miekg/dns v0.6.84 h1:KdGkekztQgb/g+TE2NIj+JM1OrSmhelDzPP5XEPV7eY=
+codeberg.org/miekg/dns v0.6.84/go.mod h1:58Y3ZTg6Z5ZEm/ZAAwHehbZfrD4u5mE4RByHoPEMyKk=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/oschwald/geoip2-golang/v2 v2.2.0 h1:gdkhpnHQMiH9ymOI+zSB0QKFGH+n4TntNt7vz+TxGPY=

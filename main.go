@@ -139,7 +139,7 @@ func loadConfig(name string, fallback string) error {
 	}
 	info, err := os.Stat(absConfigPath)
 	if err != nil {
-		return fmt.Errorf("error statting config file %s: %v", absConfigPath, err)
+		return fmt.Errorf("error stating config file %s: %v", absConfigPath, err)
 	}
 	if info.IsDir() {
 		return fmt.Errorf("config path %s is a directory, expected a file", absConfigPath)
@@ -185,7 +185,10 @@ func loadConfig(name string, fallback string) error {
 			// Close already opened zones on error
 			for _, z := range newZones {
 				if z.Database != nil {
-					z.Database.Close()
+					err := z.Database.Close()
+					if err != nil {
+						return err
+					}
 				}
 			}
 			return fmt.Errorf("error loading zone %s: %v", zoneCfg.Name, err)
@@ -204,7 +207,10 @@ func loadConfig(name string, fallback string) error {
 	// Close old zones
 	for _, z := range zones {
 		if z.Database != nil {
-			z.Database.Close()
+			err := z.Database.Close()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -357,7 +363,7 @@ func handleDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
 
 	// MaxMind database lookup under RLock
 	mu.RLock()
-	var record interface{}
+	var record any
 	var lookupErr error
 
 	switch matchedZone.DbType {
@@ -472,15 +478,15 @@ func isAllowed(ip net.IP) bool {
 // extractField extracts value from geoip2 structure by path
 // Supports array indexing like "Subdivisions[0].Names.en"
 func extractField(v reflect.Value, path string) string {
-	parts := strings.Split(path, ".")
+	parts := strings.SplitSeq(path, ".")
 
-	for _, part := range parts {
+	for part := range parts {
 		if !v.IsValid() {
 			return ""
 		}
 
 		// Safely dereference pointers and interfaces
-		for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+		for v.IsValid() && (v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface) {
 			if v.IsNil() {
 				return ""
 			}
@@ -512,7 +518,7 @@ func extractField(v reflect.Value, path string) string {
 			}
 
 			// Dereference if needed
-			for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+			for v.IsValid() && (v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface) {
 				if v.IsNil() {
 					return ""
 				}
@@ -542,7 +548,7 @@ func extractField(v reflect.Value, path string) string {
 				if !v.IsValid() {
 					return ""
 				}
-				for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+				for v.IsValid() && (v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface) {
 					if v.IsNil() {
 						return ""
 					}
@@ -558,7 +564,7 @@ func extractField(v reflect.Value, path string) string {
 		return ""
 	}
 
-	for v.IsValid() && (v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface) {
+	for v.IsValid() && (v.Kind() == reflect.Pointer || v.Kind() == reflect.Interface) {
 		if v.IsNil() {
 			return ""
 		}

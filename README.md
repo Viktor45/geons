@@ -294,7 +294,7 @@ go build -o geons
 ### Querying the Server
 
 Use `dig`, `host`, or any DNS client to query the server.
-And, of course, you can retrieve microservice data using any programming language by querying the TXT DNS-record of the appropriate synthetic domain.
+And, of course, you can retrieve microservice data using any programming language by querying the TXT DNS-record of the appropriate synthetic domain (see [examples](./examples/README.md))
 
 #### Country zone queries (`.geons`)
 

@@ -3,7 +3,7 @@ module geons
 go 1.26
 
 require (
-	codeberg.org/miekg/dns v0.6.90
+	codeberg.org/miekg/dns v0.6.94
 	github.com/oschwald/geoip2-golang/v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )

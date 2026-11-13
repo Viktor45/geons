@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine3.24 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26.11-alpine3.24 AS build
 
 WORKDIR /src
 COPY go.mod go.sum ./
